@@ -32,27 +32,35 @@ class User(Base):
     
     __tablename__ = 'users'
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger)
     premium: Mapped[bool] = mapped_column(default=False)
     
+    account_rel: Mapped['Account'] = relationship(back_populates='user_rel', cascade='all, delete')
+    
 class Currency(Base): #валюта
     
-    __tablename__ = 'currencies'
+    __tablename__ = 'currency'
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(10))
     code: Mapped[str] = mapped_column(String(10))
     
-class Score(Base): #счёт
+    account_rel: Mapped['Account'] = relationship(back_populates='currency_rel', cascade='all, delete')
     
-    __tablename__ = 'score'
+class Account(Base): #счёт
+    
+    __tablename__ = 'account'
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    tg_id_user: Mapped[int] = mapped_column()
-    name: Mapped[str] = mapped_column(String(10))
-    currency: Mapped[str] = mapped_column(String(10))
-    balance: Mapped[float] = mapped_column()
+    user: Mapped[int] = mapped_column(ForeignKey('user.id', ondelete='CASCADE'))
+    name: Mapped[str] = mapped_column(String(19))
+    currency: Mapped[str] = mapped_column(ForeignKey('currency.id', ondelete='CASCADE'))
+    balance: Mapped[float]
+    
+    user_rel: Mapped['User'] = relationship(back_populates='account_rel')
+    currency_rel: Mapped['Currency'] = relationship(back_populates='account_rel')
+    
+    transactions_rel: Mapped['Transactions'] = relationship(back_populates='account_rel', cascade='all, delete')
     
 class Categories(Base): #категория
     
@@ -62,13 +70,18 @@ class Categories(Base): #категория
     name: Mapped[str] = mapped_column(String(10))
     derection: Mapped[str] = mapped_column(String(10))
     
+    derection_rel: Mapped['Derection'] = relationship(back_populates='categories_rel', cascade = 'all, delete')
+    
 class Derection(Base): #направление
     
     __tablename__ = 'derection'
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    categories: Mapped[str] = mapped_column(String(10))
+    categories: Mapped[str] = mapped_column(ForeignKey('categories.name'), onupdate='CASCADE')
     name: Mapped[str] = mapped_column(String(10))
+    
+    categories_rel: Mapped['Categories'] = relationship(back_populates='derection_rel')
+    transactions_rel: Mapped['Transactions'] = relationship(back_populates='derection_rel')
     
 class Transactions(Base): #транзакция
     
@@ -77,8 +90,11 @@ class Transactions(Base): #транзакция
     id: Mapped[int] = mapped_column(primary_key=True)
     date: Mapped[str] = mapped_column(date)   
     summ: Mapped[float] = mapped_column()
-    currency: Mapped[str] = mapped_column(String(10))
-    derection: Mapped[str] = mapped_column(String(10))
+    currency: Mapped[str] = mapped_column(ForeignKey('account.currency'), onupdate='CASCADE')
+    derection: Mapped[str] = mapped_column(ForeignKey('derection.name'), onupdate='CASCADE')
+    
+    currency_rel: Mapped['Account'] = relationship(back_populates='transactions_rel')
+    derection_rel: Mapped['Derection'] = relationship(back_populates='transactions_rel')
 
 
 async def async_main():
